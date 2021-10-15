@@ -1,0 +1,8 @@
+package common
+
+import chisel3._
+import chisel3.util._
+
+object Instructions {
+    val ADD = BitPat("b0000000??????????000?????0110011")
+}
