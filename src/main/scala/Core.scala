@@ -55,8 +55,20 @@ class Core extends Module {
     // --------------------- EX --------------------
     val alu_out = MuxCase(0.U(WORD_LEN.W), Seq(
         // switch-caseで計算
-        (inst === LW) -> (rs1_data + imm_i_sext), // メモリアドレスの計算
-        (inst === SW) -> (rs1_data + imm_s_sext)
+        (inst === LW) -> (rs1_data + imm_i_sext),
+        (inst === SW) -> (rs1_data + imm_s_sext),
+
+        (inst === ADD) -> (rs1_data + rs2_data),
+        (inst === SUB) -> (rs1_data - rs2_data),
+        (inst === ADDI) -> (rs1_data + imm_i_sext),
+
+        (inst === AND) -> (rs1_data & rs2_data),
+        (inst === OR) -> (rs1_data | rs2_data),
+        (inst === XOR) -> (rs1_data ^ rs2_data),
+
+        (inst === ANDI) -> (rs1_data & imm_i_sext),
+        (inst === ORI) -> (rs1_data | imm_i_sext),
+        (inst === XORI) -> (rs1_data ^ imm_i_sext),
     ))
 
 
@@ -67,9 +79,14 @@ class Core extends Module {
 
 
     // --------------------- WB --------------------
-    val rd_data = io.dmem.rdata
-    when(inst === LW) {
-        regfile(rd_addr) := rd_data // メモリに書き出し
+
+    // write-backするdataを設定
+    val wb_data = MuxCase(alu_out, Seq(
+        (inst === LW) -> io.dmem.rdata
+    ))
+
+    when(inst === LW || inst === ADD || inst === ADDI || inst === SUB || inst === AND || inst === OR || inst === XOR || inst === ANDI || inst === ORI || inst === XORI) {
+        regfile(rd_addr) := wb_data // レジスタに書き出し
     }
 
 
@@ -82,7 +99,7 @@ class Core extends Module {
 
     printf(p"rs1_data   : 0x${Hexadecimal(rs1_data)}\n")
     printf(p"rs2_data   : 0x${Hexadecimal(rs2_data)}\n")
-    printf(p"rd_data    : 0x${Hexadecimal(rd_data)}\n")
+    printf(p"wb_data    : 0x${Hexadecimal(wb_data)}\n")
     printf(p"dmem.addr  : 0x${io.dmem.addr}\n")
     printf(p"dmem.wen   : 0x${io.dmem.wen}\n")
     printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
