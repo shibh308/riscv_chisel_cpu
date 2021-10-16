@@ -80,6 +80,10 @@ class Core extends Module {
     val imm_j = Cat(inst(31), inst(19, 12), inst(20), inst(30, 21))
     val imm_j_sext = Cat(Fill(11, imm_j(19)), imm_j, 0.U(1.U)) // 最下位bitは0固定
 
+    // U形式の即値
+    val imm_u = inst(31, 12)
+    val imm_u_shifted = Cat(imm_u, Fill(12, 0.U)) // 20bitを12個左シフトする
+
     val csignals = ListLookup(inst,
                 //    op, arg1, arg2, memwrite, regwrite, regwrite target
                  List(ALU_X    , OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X  ),
@@ -119,6 +123,9 @@ class Core extends Module {
 
         JAL   -> List(ALU_ADD  , OP1_PC , OP2_IMJ, MEN_X, REN_S, WB_PC), // PCからの相対位置ジャンプ
         JALR  -> List(ALU_JALR , OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_PC), // レジスタの値からの相対位置ジャンプ
+
+        LUI   -> List(ALU_ADD  , OP1_X  , OP2_IMU, MEN_X, REN_S, WB_ALU), // 即値ロードなので, ALUでは0+即値を計算している
+        AUIPC -> List(ALU_ADD  , OP1_PC , OP2_IMU, MEN_X, REN_S, WB_ALU), // PCに即値を足してレジスタに書き込む
     ))
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wel :: wb_sel :: Nil = csignals // unpackして受け取ってる
 
@@ -131,6 +138,7 @@ class Core extends Module {
         (op2_sel === OP2_IMI) -> imm_i_sext,
         (op2_sel === OP2_IMS) -> imm_s_sext,
         (op2_sel === OP2_IMJ) -> imm_j_sext,
+        (op2_sel === OP2_IMU) -> imm_u_shifted,
     ))
 
 
