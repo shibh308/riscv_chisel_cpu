@@ -3,5 +3,5 @@
 ## Usage
 ```
 cd src
-sbt "testOnly mycpu.HexTest"
+sbt "testOnly mycpu.RiscvTest"
 ```

@@ -1,4 +1,4 @@
-package mycpu
+package {package}
 
 import chisel3._
 import chisel3.util._
@@ -30,7 +30,7 @@ class Memory extends Module {
 
     val mem = Mem(MEM_SIZE, UInt(8.W))
 
-    loadMemoryFromFile(mem, "src/riscv-tests/rv32ui-p-add.hex")
+    loadMemoryFromFile(mem, "src/riscv-tests/rv32{isa}-p-{inst}.hex")
 
     // 命令読み込み
     io.imem.inst := Cat(
