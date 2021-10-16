@@ -5,6 +5,7 @@ import chisel3._
 object Consts {
   val WORD_LEN      = 32
   val NUM_REG       = 32 // レジスタ本数
+  val NUM_CSR_REG   = 4096
   val MEM_SIZE      = 16384 // メモリサイズ (16KB)
   val START_ADDR    = 0.U(WORD_LEN.W)
   val BUBBLE        = 0x00000013.U(WORD_LEN.W)  // [ADDI x0,x0,0] = BUBBLE
