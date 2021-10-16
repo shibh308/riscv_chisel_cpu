@@ -1,4 +1,4 @@
-package mycpu
+package riscv_test
 import chisel3._
 
 import org.scalatest._

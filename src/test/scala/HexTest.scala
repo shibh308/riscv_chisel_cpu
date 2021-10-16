@@ -1,4 +1,4 @@
-package mycpu
+package ctest
 import chisel3._
 
 import org.scalatest._

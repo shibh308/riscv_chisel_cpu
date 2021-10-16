@@ -12,19 +12,24 @@ cd $WORK_DIR
 function loop_test(){
     INSTS=${!1}
     ISA=$2
-    PACKAGE_NAME=mycpu
+    PACKAGE_NAME=riscv_test
     sed -e "s/{package}/$PACKAGE_NAME/" $WORK_DIR/src/templates/Core.scala > $WORK_DIR/src/main/scala/auto_generate/Core.scala
+    sed -e "s/{package}/$PACKAGE_NAME/" $WORK_DIR/src/templates/Top.scala > $WORK_DIR/src/main/scala/auto_generate/Top.scala
     
     for INST in ${INSTS[@]}
     do
-        echo $INST
         sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{isa}/$ISA/" -e "s/{inst}/$INST/" $WORK_DIR/src/templates/Memory.scala > $WORK_DIR/src/main/scala/auto_generate/Memory.scala
         sbt "testOnly $PACKAGE_NAME.RiscvTest" > $RESULT_DIR/$INST.txt
+        last=$(tail -n 1 $RESULT_DIR/$INST.txt)
+        if [[ $last =~ ^\[success\]* ]] ;
+        then
+            printf "%-5s : passed\n" $INST
+        else
+            printf "%-5s : failed\n" $INST
+        fi
     done
 }
 
-PACKAGE_NAME=$1
-DIRECTORY_NAME=$2
 loop_test UI_INSTS[@] "ui"
 loop_test MI_INSTS[@] "mi"
 
