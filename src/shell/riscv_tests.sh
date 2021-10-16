@@ -27,3 +27,5 @@ PACKAGE_NAME=$1
 DIRECTORY_NAME=$2
 loop_test UI_INSTS[@] "ui"
 loop_test MI_INSTS[@] "mi"
+
+rm -r $WORK_DIR/src/main/scala/auto_generate
