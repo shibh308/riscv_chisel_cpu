@@ -13,6 +13,7 @@ class Core extends Module {
         val dmem = Flipped(new DmemPortIo())
         // 終了判定
         val exit = Output(Bool())
+        val gp = Output(UInt(WORD_LEN.W)) // x3のレジスタ
     })
 
     // レジスタは32本でそれぞれ32bit
@@ -50,6 +51,8 @@ class Core extends Module {
     ))
     pc_reg := pc_next
 
+    // 0x3 (グローバルポインタ) を指すようにする
+    io.gp := regfile(3)
 
     // --------------------- IF --------------------
     io.imem.addr := pc_reg
@@ -64,7 +67,7 @@ class Core extends Module {
     val rd_addr = inst(11, 7)
 
     // 0番レジスタは常に0
-    // マルチプレクサ要らないように見えるけど参照元コードで定義されてるので書いてます
+    // 実際は適当に値を書き込んじゃう場合があるので、マルチプレクサ挟んで必ず0にするようにしてる
     val rs1_data = Mux((rs1_addr === 0.U(WORD_LEN.U)), 0.U(WORD_LEN.W), regfile(rs1_addr))
     val rs2_data = Mux((rs2_addr === 0.U(WORD_LEN.U)), 0.U(WORD_LEN.W), regfile(rs2_addr))
 
@@ -78,7 +81,7 @@ class Core extends Module {
 
     // B形式の即値
     val imm_b = Cat(inst(31), inst(7), inst(30, 25), inst(11, 8)) // 11bitがすごいバラけてる
-    val imm_b_sext = Cat(Fill(19, imm_s(11)), imm_s, 0.U(1.U)) // 12bitの末尾1ケタを0で固定して11bitで表現みたいな事をしてる
+    val imm_b_sext = Cat(Fill(19, imm_b(11)), imm_b, 0.U(1.U)) // 12bitの末尾1ケタを0で固定して11bitで表現みたいな事をしてる
 
     // J形式の即値
     val imm_j = Cat(inst(31), inst(19, 12), inst(20), inst(30, 21))
@@ -224,6 +227,8 @@ class Core extends Module {
 
 
     printf(p"pc_reg     : 0x${Hexadecimal(pc_reg)}\n")
+
+    /*
     printf(p"inst       : 0x${Hexadecimal(inst)}\n")
 
     printf(p"rs1_addr   : $rs1_addr\n")
@@ -236,8 +241,11 @@ class Core extends Module {
     printf(p"dmem.addr  : 0x${io.dmem.addr}\n")
     printf(p"dmem.wen   : 0x${io.dmem.wen}\n")
     printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
+    */
+
+    printf(p"gp         : 0x${regfile(3)}\n")
     printf("----------------\n")
 
     // 終了判定
-    io.exit := (inst === 0x00602823.U(WORD_LEN.W))
+    io.exit := (pc_reg === 0x44.U(WORD_LEN.W)) // riscv-testsの終了アドレス
 }
