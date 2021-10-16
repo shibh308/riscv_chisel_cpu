@@ -46,6 +46,7 @@ class Core extends Module {
     val pc_next = MuxCase(pc_plus4, Seq(
         br_flg -> br_target, // ALUでは分岐判定が走ってて, br_targetはALUとは別に計算をしている
         jmp_flg -> alu_out, // ジャンプ先アドレスはALUで計算するため
+        (inst === ECALL) -> csr_regfile(0x305) // 0x305(mtvec)がtrap_vectorアドレスで, OSだと例外時のシステムコールが書いてある
     ))
     pc_reg := pc_next
 
@@ -90,10 +91,6 @@ class Core extends Module {
     // Z形式の即値
     val imm_z = inst(19, 15)
     val imm_z_uext = Cat(Fill(27, 0.U), imm_z) // そのまま0埋め
-
-    // 書き換えるCSRのindex
-    val csr_addr = inst(31, 20)
-    val csr_rdata = csr_regfile(csr_addr)
 
     val csignals = ListLookup(inst,
                 //    op, arg1, arg2, memwrite, regwrite, regwrite target, csr cmd
@@ -144,8 +141,14 @@ class Core extends Module {
         CSRRSI-> List(ALU_COPY1, OP1_IMZ, OP2_X  , MEN_X, REN_S, WB_CSR, CSR_S),
         CSRRC -> List(ALU_COPY1, OP1_RS1, OP2_X  , MEN_X, REN_S, WB_CSR, CSR_C), // csr & ~x
         CSRRCI-> List(ALU_COPY1, OP1_IMZ, OP2_X  , MEN_X, REN_S, WB_CSR, CSR_C),
+
+        ECALL -> List(ALU_X    , OP1_X  , OP2_X  , MEN_X, REN_X, WB_X  , CSR_E), // 例外を発生させる
     ))
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wel :: wb_sel :: csr_cmd :: Nil = csignals // unpackして受け取ってる
+
+    // 書き換えるCSRのindex
+    val csr_addr = Mux(csr_cmd === CSR_E, 0x342.U(CSR_ADDR_LEN.W), inst(31, 20)) // ECALLの時は0x342(mcauseレジスタ)に特定の値を書き込む
+    val csr_rdata = csr_regfile(csr_addr)
 
     val op1_data = MuxCase(0.U(WORD_LEN.W), Seq(
         (op1_sel === OP1_RS1) -> rs1_data,
@@ -193,6 +196,7 @@ class Core extends Module {
         (csr_cmd === CSR_W) -> op1_data,
         (csr_cmd === CSR_S) -> (csr_rdata | op1_data),
         (csr_cmd === CSR_C) -> (csr_rdata & ~op1_data),
+        (csr_cmd === CSR_E) -> 11.U(WORD_LEN.W), // マシンモードからのECALLを表すらしい
     ))
 
     // --------------------- MEM --------------------
