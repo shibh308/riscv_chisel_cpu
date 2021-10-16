@@ -228,21 +228,12 @@ class Core extends Module {
 
     printf("----------------\n")
     printf(p"pc_reg     : 0x${Hexadecimal(pc_reg)}\n")
-
     printf(p"inst       : 0x${Hexadecimal(inst)}\n")
 
-    printf(p"rs1_addr   : $rs1_addr\n")
-    printf(p"rs2_addr   : $rs2_addr\n")
-    printf(p"rd_addr    : $rd_addr\n")
-
-    printf(p"rs1_data   : 0x${Hexadecimal(rs1_data)}\n")
-    printf(p"rs2_data   : 0x${Hexadecimal(rs2_data)}\n")
+    printf(p"op1_data   : 0x${Hexadecimal(op1_data)}\n")
+    printf(p"op2_data   : 0x${Hexadecimal(op2_data)}\n")
+    printf(p"alu_out    : 0x${Hexadecimal(alu_out)}\n")
     printf(p"wb_data    : 0x${Hexadecimal(wb_data)}\n")
-    printf(p"dmem.addr  : 0x${io.dmem.addr}\n")
-    printf(p"dmem.wen   : 0x${io.dmem.wen}\n")
-    printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
-
-    printf(p"gp         : 0x${regfile(3)}\n")
     printf("----------------\n")
 
     // 終了判定
