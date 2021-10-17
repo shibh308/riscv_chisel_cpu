@@ -247,5 +247,5 @@ class Core extends Module {
     printf("----------------\n")
 
     // 終了判定
-    io.exit := (pc_reg === 0x44.U(WORD_LEN.W)) // riscv-testsの終了アドレス
+    io.exit := {exit} // riscv-testsの終了アドレス
 }

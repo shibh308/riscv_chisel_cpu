@@ -30,7 +30,7 @@ class Memory extends Module {
 
     val mem = Mem(MEM_SIZE, UInt(8.W))
 
-    loadMemoryFromFile(mem, "src/riscv-tests/rv32{isa}-p-{inst}.hex")
+    loadMemoryFromFile(mem, "{load_path}")
 
     // 命令読み込み
     io.imem.inst := Cat(
