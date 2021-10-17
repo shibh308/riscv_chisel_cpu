@@ -10,5 +10,5 @@ bash src/shell/riscv_tests.sh
 ### ctest
 ```
 sh src/shell/compile_riscv.sh src/c/ctest.c
-sh src/shell/clean_compiled_file.sh src/c
+sh src/shell/clean_compiled_file.sh
 ```

@@ -1,1 +1,1 @@
-rm $1 $1.o $1.dump $1.bin $1.hex
+find src/c/* -not -name '*.c' -not -name '*.ld' | xargs rm
