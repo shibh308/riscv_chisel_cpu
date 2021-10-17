@@ -3,6 +3,8 @@
 FILES=/opt/riscv/riscv-tests/isa/rv32*i-p-*
 SAVE_DIR=/opt/riscv/riscv_chisel_cpu/src/riscv-tests
 
+mkdir -p $SAVE_DIR
+
 for f in $FILES
 do
     FILE_NAME="${f##*/}"
