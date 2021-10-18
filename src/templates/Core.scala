@@ -22,6 +22,15 @@ class Core extends Module {
     // CSR用のレジスタ
     val csr_regfile = Mem(NUM_CSR_REG, UInt(WORD_LEN.W))
 
+    val stall_flg = Wire(Bool()) // データハザードでのストール
+
+    val ex_reg_wb_addr = RegInit(0.U(ADDR_LEN.W))
+    val ex_reg_rf_wen  = RegInit(0.U(REN_LEN.W))
+    val me_reg_wb_addr = RegInit(0.U(ADDR_LEN.W))
+    val me_reg_rf_wen  = RegInit(0.U(REN_LEN.W))
+    val wb_reg_wb_addr = RegInit(0.U(ADDR_LEN.W))
+    val wb_reg_rf_wen  = RegInit(0.U(ADDR_LEN.W))
+
     // 0x3 (グローバルポインタ) を指すようにする
     io.gp := regfile(3)
 
@@ -41,59 +50,83 @@ class Core extends Module {
 
     val ex_alu_out = Wire(UInt(WORD_LEN.W))
 
+    val me_wb_data = Wire(UInt(WORD_LEN.W))
+    val wb_reg_wb_data = RegInit(0.U(ADDR_LEN.W))
+
     // 次の命令に行かずにジャンプをする場合がある
     // br_flgの代入がEXステージなので直感に反するんだけど、これで問題ないらしい
     val if_pc_next = MuxCase(if_reg_pc + 4.U(WORD_LEN.W), Seq(
         ex_br_flg -> ex_br_target, // ALUでは分岐判定が走ってて, br_targetはALUとは別に計算をしている
         ex_jmp_flg -> ex_alu_out, // ジャンプ先アドレスはALUで計算するため
-        (if_inst === ECALL) -> csr_regfile(0x305) // 0x305(mtvec)がtrap_vectorアドレスで, OSだと例外時のシステムコールが書いてある
+        (if_inst === ECALL) -> csr_regfile(0x305), // 0x305(mtvec)がtrap_vectorアドレスで, OSだと例外時のシステムコールが書いてある
+        stall_flg -> if_reg_pc, // ループさせる
     ))
+    if_reg_pc := if_pc_next;
 
     // *********************************************
 
     val id_reg_pc   = RegInit(0.U(WORD_LEN.W))
     val id_reg_inst = RegInit(0.U(WORD_LEN.W))
 
-    id_reg_pc := if_reg_pc;
-    id_reg_inst := if_inst
+    id_reg_pc := Mux(stall_flg, id_reg_pc, if_reg_pc);
+    id_reg_inst := MuxCase(if_inst, Seq(
+        (ex_br_flg || ex_jmp_flg) -> BUBBLE, // 分岐ハザード
+        stall_flg -> id_reg_inst, // データハザードのストール
+    ))
 
     // --------------------- ID --------------------
 
+    val id_rs1_addr_b = id_reg_inst(19, 15) // ストール判定部分 (id_instの確定前に動かす)
+    val id_rs2_addr_b = id_reg_inst(24, 20)
+    val id_rs1_data_hazard = (id_rs1_addr_b =/= 0.U) && (id_rs1_addr_b === ex_reg_wb_addr)
+    val id_rs2_data_hazard = (id_rs2_addr_b =/= 0.U) && (id_rs2_addr_b === ex_reg_wb_addr)
+    stall_flg := (id_rs1_data_hazard || id_rs2_data_hazard) && (ex_reg_rf_wen === REN_S)
+
+    val id_inst = Mux((ex_br_flg || ex_jmp_flg || stall_flg), BUBBLE, id_reg_inst) // 分岐ハザード
+
     // レジスタ番号 (rs1, rs2, rd)
-    val id_rs1_addr = id_reg_inst(19, 15)
-    val id_rs2_addr = id_reg_inst(24, 20)
-    val id_rd_addr = id_reg_inst(11, 7)
+    val id_rs1_addr = id_inst(19, 15)
+    val id_rs2_addr = id_inst(24, 20)
+    val id_wb_addr = id_inst(11, 7)
 
     // 0番レジスタは常に0
     // 実際は適当に値を書き込んじゃう場合があるので、マルチプレクサ挟んで必ず0にするようにしてる
-    val id_rs1_data = Mux((id_rs1_addr === 0.U(WORD_LEN.U)), 0.U(WORD_LEN.W), regfile(id_rs1_addr))
-    val id_rs2_data = Mux((id_rs2_addr === 0.U(WORD_LEN.U)), 0.U(WORD_LEN.W), regfile(id_rs2_addr))
+    val id_rs1_data = MuxCase(regfile(id_rs1_addr), Seq(
+        (id_rs1_addr === 0.U(WORD_LEN.U)) -> 0.U(WORD_LEN.W),
+        ((id_rs1_addr === me_reg_wb_addr) && me_reg_rf_wen === REN_S) -> me_wb_data,
+        ((id_rs1_addr === wb_reg_wb_addr) && wb_reg_rf_wen === REN_S) -> wb_reg_wb_data,
+    ))
+    val id_rs2_data = MuxCase(regfile(id_rs2_addr), Seq(
+        (id_rs2_addr === 0.U(WORD_LEN.U)) -> 0.U(WORD_LEN.W),
+        ((id_rs2_addr === me_reg_wb_addr) && me_reg_rf_wen === REN_S) -> me_wb_data,
+        ((id_rs2_addr === wb_reg_wb_addr) && wb_reg_rf_wen === REN_S) -> wb_reg_wb_data,
+    ))
 
     // I形式の即値
-    val id_imm_i = id_reg_inst(31, 20)
+    val id_imm_i = id_inst(31, 20)
     val id_imm_i_sext = Cat(Fill(20, id_imm_i(11)), id_imm_i) // 最上位bitで埋める (12bitを32bitに拡張してる)
 
     // S形式の即値
-    val id_imm_s = Cat(id_reg_inst(31, 25), id_reg_inst(11, 7))
+    val id_imm_s = Cat(id_inst(31, 25), id_inst(11, 7))
     val id_imm_s_sext = Cat(Fill(20, id_imm_s(11)), id_imm_s)
 
     // B形式の即値
-    val id_imm_b = Cat(id_reg_inst(31), id_reg_inst(7), id_reg_inst(30, 25), id_reg_inst(11, 8)) // 11bitがすごいバラけてる
+    val id_imm_b = Cat(id_inst(31), id_inst(7), id_inst(30, 25), id_inst(11, 8)) // 11bitがすごいバラけてる
     val id_imm_b_sext = Cat(Fill(19, id_imm_b(11)), id_imm_b, 0.U(1.U)) // 12bitの末尾1ケタを0で固定して11bitで表現みたいな事をしてる
 
     // J形式の即値
-    val id_imm_j = Cat(id_reg_inst(31), id_reg_inst(19, 12), id_reg_inst(20), id_reg_inst(30, 21))
+    val id_imm_j = Cat(id_inst(31), id_inst(19, 12), id_inst(20), id_inst(30, 21))
     val id_imm_j_sext = Cat(Fill(11, id_imm_j(19)), id_imm_j, 0.U(1.U)) // 最下位bitは0固定
 
     // U形式の即値
-    val id_imm_u = id_reg_inst(31, 12)
+    val id_imm_u = id_inst(31, 12)
     val id_imm_u_shifted = Cat(id_imm_u, Fill(12, 0.U)) // 20bitを12個左シフトする
 
     // Z形式の即値
-    val id_imm_z = id_reg_inst(19, 15)
+    val id_imm_z = id_inst(19, 15)
     val id_imm_z_uext = Cat(Fill(27, 0.U), id_imm_z) // そのまま0埋め
 
-    val id_csignals = ListLookup(id_reg_inst,
+    val id_csignals = ListLookup(id_inst,
                 //    op, arg1, arg2, memwrite, regwrite, regwrite target, csr cmd
                  List(ALU_X    , OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X  , CSR_X),
     Array(
@@ -148,7 +181,7 @@ class Core extends Module {
     val id_exe_fun :: id_op1_sel :: id_op2_sel :: id_mem_wen :: id_rf_wen :: id_wb_sel :: id_csr_cmd :: Nil = id_csignals // unpackして受け取ってる
 
     // 書き換えるCSRのindex
-    val id_csr_addr = Mux(id_csr_cmd === CSR_E, 0x342.U(CSR_ADDR_LEN.W), id_reg_inst(31, 20)) // ECALLの時は0x342(mcauseレジスタ)に特定の値を書き込む
+    val id_csr_addr = Mux(id_csr_cmd === CSR_E, 0x342.U(CSR_ADDR_LEN.W), id_inst(31, 20)) // ECALLの時は0x342(mcauseレジスタ)に特定の値を書き込む
 
     val id_op1_data = MuxCase(0.U(WORD_LEN.W), Seq(
         (id_op1_sel === OP1_RS1) -> id_rs1_data,
@@ -166,13 +199,11 @@ class Core extends Module {
     // *********************************************
 
     val ex_reg_pc            = RegInit(0.U(WORD_LEN.W))
-    val ex_reg_rd_addr       = RegInit(0.U(ADDR_LEN.W))
     val ex_reg_op1_data      = RegInit(0.U(WORD_LEN.W))
     val ex_reg_op2_data      = RegInit(0.U(WORD_LEN.W))
     val ex_reg_rs2_data      = RegInit(0.U(WORD_LEN.W))
     val ex_reg_exe_fun       = RegInit(0.U(EXE_FUN_LEN.W))
     val ex_reg_mem_wen       = RegInit(0.U(MEN_LEN.W))
-    val ex_reg_rf_wen        = RegInit(0.U(REN_LEN.W))
     val ex_reg_wb_sel        = RegInit(0.U(WB_SEL_LEN.W))
     val ex_reg_csr_addr      = RegInit(0.U(CSR_ADDR_LEN.W))
     val ex_reg_csr_cmd       = RegInit(0.U(CSR_LEN.W))
@@ -183,7 +214,7 @@ class Core extends Module {
     val ex_reg_imm_z_uext    = RegInit(0.U(WORD_LEN.W))
 
     ex_reg_pc            := id_reg_pc
-    ex_reg_rd_addr       := id_rd_addr
+    ex_reg_wb_addr       := id_wb_addr
     ex_reg_op1_data      := id_op1_data
     ex_reg_op2_data      := id_op2_data
     ex_reg_rs2_data      := id_rs2_data
@@ -231,11 +262,9 @@ class Core extends Module {
     // *********************************************
 
     val me_reg_pc         = RegInit(0.U(WORD_LEN.W))
-    val me_reg_rd_addr    = RegInit(0.U(ADDR_LEN.W))
     val me_reg_op1_data   = RegInit(0.U(WORD_LEN.W))
     val me_reg_rs2_data   = RegInit(0.U(WORD_LEN.W))
     val me_reg_mem_wen    = RegInit(0.U(MEN_LEN.W))
-    val me_reg_rf_wen     = RegInit(0.U(REN_LEN.W))
     val me_reg_wb_sel     = RegInit(0.U(WB_SEL_LEN.W))
     val me_reg_csr_addr   = RegInit(0.U(CSR_ADDR_LEN.W))
     val me_reg_csr_cmd    = RegInit(0.U(CSR_LEN.W))
@@ -243,7 +272,7 @@ class Core extends Module {
     val me_reg_alu_out    = RegInit(0.U(WORD_LEN.W))
 
     me_reg_pc         := ex_reg_pc
-    me_reg_rd_addr    := ex_reg_rd_addr
+    me_reg_wb_addr    := ex_reg_wb_addr
     me_reg_op1_data   := ex_reg_op1_data
     me_reg_rs2_data   := ex_reg_rs2_data
     me_reg_mem_wen    := ex_reg_mem_wen
@@ -274,7 +303,7 @@ class Core extends Module {
     }
 
     // write-backするdataを設定
-    val me_wb_data = MuxCase(me_reg_alu_out, Seq(
+    me_wb_data := MuxCase(me_reg_alu_out, Seq(
         (me_reg_wb_sel === WB_MEM) -> io.dmem.rdata, // メモリからの読み込み (LW命令時)
         (me_reg_wb_sel === WB_PC) -> (me_reg_pc + 4.U(WORD_LEN.W)), // ジャンプから戻ってくる時のアドレス
         (me_reg_wb_sel === WB_CSR) -> csr_rdata,
@@ -282,18 +311,14 @@ class Core extends Module {
 
     // *********************************************
 
-    val wb_reg_rd_addr = RegInit(0.U(ADDR_LEN.W))
-    val wb_reg_rf_wen  = RegInit(0.U(ADDR_LEN.W))
-    val wb_reg_wb_data = RegInit(0.U(ADDR_LEN.W))
-
-    wb_reg_rd_addr := me_reg_rd_addr
+    wb_reg_wb_addr := me_reg_wb_addr
     wb_reg_rf_wen := me_reg_rf_wen
     wb_reg_wb_data := me_wb_data
 
     // --------------------- WB --------------------
 
     when(wb_reg_rf_wen === REN_S) {
-        regfile(wb_reg_rd_addr) := wb_reg_wb_data // データをレジスタに書き出し (SW以外の命令時)
+        regfile(wb_reg_wb_addr) := wb_reg_wb_data // データをレジスタに書き出し (SW以外の命令時)
     }
 
     printf(p"reg_pc     : 0x${Hexadecimal(id_reg_pc)}\n")
@@ -301,7 +326,7 @@ class Core extends Module {
     /*
     printf(p"op1_data   : 0x${Hexadecimal(me_reg_op1_data)}\n")
     printf(p"op2_data   : 0x${Hexadecimal(me_reg_op2_data)}\n")
-    printf(p"wb_data    : 0x${Hexadecimal(me_reg_wb_data)}\n")
+    printf(p"wb_data    : 0x${Hexadecimal(me_wb_data)}\n")
     */
 
     printf(p"gp         : 0x${regfile(3)}\n")
