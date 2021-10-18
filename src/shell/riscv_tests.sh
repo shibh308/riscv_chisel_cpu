@@ -16,7 +16,7 @@ cd $WORK_DIR
 function loop_test(){
     INSTS=${!1}
     ISA=$2
-    sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{exit}/(pc_reg === 0x44.U(WORD_LEN.W))/" $READ_DIR/Core.scala > $WRITE_DIR/Core.scala
+    sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{exit}/(me_reg_pc === 0x44.U(WORD_LEN.W))/" $READ_DIR/Core.scala > $WRITE_DIR/Core.scala
     sed -e "s/{package}/$PACKAGE_NAME/" $READ_DIR/Top.scala > $WRITE_DIR/Top.scala
     
     for INST in ${INSTS[@]}

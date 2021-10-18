@@ -13,7 +13,7 @@ LD_PATH=src/c/link.ld
 mkdir -p $WRITE_DIR
 cd $WORK_DIR
 
-sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{exit}/(inst === UNIMP)/" $READ_DIR/Core.scala > $WRITE_DIR/Core.scala
+sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{exit}/(id_reg_inst === UNIMP)/" $READ_DIR/Core.scala > $WRITE_DIR/Core.scala
 sed -e "s/{package}/$PACKAGE_NAME/" $READ_DIR/Top.scala > $WRITE_DIR/Top.scala
 sed -e "s/{package}/$PACKAGE_NAME/" -e "s%{load_path}%$LOAD_PATH%" $READ_DIR/Memory.scala > $WRITE_DIR/Memory.scala
 
