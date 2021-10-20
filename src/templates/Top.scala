@@ -23,3 +23,8 @@ class Top extends Module {
     io.gp := core.io.gp
     io.exit := core.io.exit
 }
+
+object Elaborate extends App {
+    val rtl = (new stage.ChiselStage).emitVerilog(new Top)
+    print(rtl)
+}
