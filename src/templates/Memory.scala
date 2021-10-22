@@ -34,6 +34,7 @@ class Memory extends Module {
 
     io.serial := mem(IO_START_ADDR)
 
+
     loadMemoryFromFile(mem, "{load_path}")
 
     // 命令読み込み
@@ -57,11 +58,14 @@ class Memory extends Module {
         )
     ))
 
+    /*
     printf("----------------\n")
     printf(p"dmem.wen : 0x${io.dmem.wen}\n")
     printf(p"dmem.addr : 0x${Hexadecimal(io.dmem.addr)}\n")
     printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
+    printf(p"io_serial : 0x${Hexadecimal(mem(IO_START_ADDR))}\n")
     printf("----------------\n")
+    */
 
     // メモリへの書き込み
     when(io.dmem.wen) {

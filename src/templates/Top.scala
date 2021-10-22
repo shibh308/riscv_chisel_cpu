@@ -22,7 +22,7 @@ class Top extends Module {
     core.io.dmem <> memory.io.dmem
 
     memory.io.serial <> serial.io.input
-    serial.io.clk := (core.io.cnt(3,0) === BitPat("b0000"))
+    serial.io.cnt := core.io.cnt
 
     io.gp := core.io.gp
     io.exit := core.io.exit

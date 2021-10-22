@@ -10,7 +10,7 @@ object Consts {
   val MEM_SIZE      = 16384 // メモリサイズ (16KB)
 
   val START_ADDR    = 0.U(WORD_LEN.W)
-  val IO_START_ADDR = 0x00100000.U(WORD_LEN.W) // IOの開始地点 (UARTのポート)
+  val IO_START_ADDR = 0x00001000.U(WORD_LEN.W) // IOの開始地点 (UARTのポート)
 
   val BUBBLE        = 0x00000013.U(WORD_LEN.W)  // [ADDI x0,x0,0] = BUBBLE
   val UNIMP         = "x_c0001073".U(WORD_LEN.W) // [CSRRW x0, cycle, x0]
