@@ -18,6 +18,7 @@ function loop_test(){
     ISA=$2
     sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{exit}/(pc_reg === 0x44.U(WORD_LEN.W))/" $READ_DIR/Core.scala > $WRITE_DIR/Core.scala
     sed -e "s/{package}/$PACKAGE_NAME/" $READ_DIR/Top.scala > $WRITE_DIR/Top.scala
+    sed -e "s/{package}/$PACKAGE_NAME/" $READ_DIR/Serial.scala > $WRITE_DIR/Serial.scala
     
     for INST in ${INSTS[@]}
     do

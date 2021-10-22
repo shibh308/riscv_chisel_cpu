@@ -4,10 +4,14 @@ import chisel3._
 
 object Consts {
   val WORD_LEN      = 32
+  val COUNTER_LEN   = 32 // clkのビット数
   val NUM_REG       = 32 // レジスタ本数
   val NUM_CSR_REG   = 4096
   val MEM_SIZE      = 16384 // メモリサイズ (16KB)
+
   val START_ADDR    = 0.U(WORD_LEN.W)
+  val IO_START_ADDR = 0x00100000.U(WORD_LEN.W) // IOの開始地点 (UARTのポート)
+
   val BUBBLE        = 0x00000013.U(WORD_LEN.W)  // [ADDI x0,x0,0] = BUBBLE
   val UNIMP         = "x_c0001073".U(WORD_LEN.W) // [CSRRW x0, cycle, x0]
   val ADDR_LEN      = 5 // rs1,rs2,wb

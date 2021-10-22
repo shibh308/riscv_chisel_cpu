@@ -26,9 +26,12 @@ class Memory extends Module {
     val io = IO(new Bundle{
         val imem = new ImemPortIo()
         val dmem = new DmemPortIo()
+        val serial = Output(Bool())
     })
 
     val mem = Mem(MEM_SIZE, UInt(8.W))
+
+    io.serial := mem(IO_START_ADDR)
 
     loadMemoryFromFile(mem, "{load_path}")
 
@@ -45,6 +48,12 @@ class Memory extends Module {
         mem(io.dmem.addr + 1.U(WORD_LEN.W)),
         mem(io.dmem.addr + 0.U(WORD_LEN.W))
     )
+
+    printf("----------------\n")
+    printf(p"dmem.wen : 0x${io.dmem.wen}\n")
+    printf(p"dmem.addr : 0x${Hexadecimal(io.dmem.addr)}\n")
+    printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
+    printf("----------------\n")
 
     // メモリへの書き込み
     when(io.dmem.wen) {

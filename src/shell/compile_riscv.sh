@@ -15,6 +15,7 @@ cd $WORK_DIR
 
 sed -e "s/{package}/$PACKAGE_NAME/" -e "s/{exit}/(inst === UNIMP)/" $READ_DIR/Core.scala > $WRITE_DIR/Core.scala
 sed -e "s/{package}/$PACKAGE_NAME/" $READ_DIR/Top.scala > $WRITE_DIR/Top.scala
+sed -e "s/{package}/$PACKAGE_NAME/" $READ_DIR/Serial.scala > $WRITE_DIR/Serial.scala
 sed -e "s/{package}/$PACKAGE_NAME/" -e "s%{load_path}%$LOAD_PATH%" $READ_DIR/Memory.scala > $WRITE_DIR/Memory.scala
 
 riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 -c -o $BASENAME.o $BASENAME.c

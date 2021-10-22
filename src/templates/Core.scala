@@ -14,6 +14,7 @@ class Core extends Module {
         // 終了判定
         val exit = Output(Bool())
         val gp = Output(UInt(WORD_LEN.W)) // x3のレジスタ
+        val cnt = Output(UInt(COUNTER_LEN.W))
     })
 
     // レジスタは32本でそれぞれ32bit
@@ -50,6 +51,10 @@ class Core extends Module {
         (inst === ECALL) -> csr_regfile(0x305) // 0x305(mtvec)がtrap_vectorアドレスで, OSだと例外時のシステムコールが書いてある
     ))
     pc_reg := pc_next
+    
+    val cnt = RegInit(0.U(COUNTER_LEN.W))
+    cnt := cnt + 1.U
+    io.cnt := cnt
 
     // 0x3 (グローバルポインタ) を指すようにする
     io.gp := regfile(3)
@@ -225,10 +230,9 @@ class Core extends Module {
         csr_regfile(csr_addr) := csr_wdata
     }
 
-
+    /*
     printf(p"pc_reg     : 0x${Hexadecimal(pc_reg)}\n")
 
-    /*
     printf(p"inst       : 0x${Hexadecimal(inst)}\n")
 
     printf(p"rs1_addr   : $rs1_addr\n")
@@ -241,10 +245,10 @@ class Core extends Module {
     printf(p"dmem.addr  : 0x${io.dmem.addr}\n")
     printf(p"dmem.wen   : 0x${io.dmem.wen}\n")
     printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
-    */
 
     printf(p"gp         : 0x${regfile(3)}\n")
     printf("----------------\n")
+    */
 
     // 終了判定
     io.exit := {exit} // riscv-testsの終了アドレス
