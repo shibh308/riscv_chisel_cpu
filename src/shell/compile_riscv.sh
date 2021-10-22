@@ -1,4 +1,8 @@
 BASENAME=${1%.*}
+if [ -z "$BASENAME" ]; then
+    echo "invalid argument"
+    exit
+fi
 echo $BASENAME
 
 PACKAGE_NAME=ctest
@@ -22,6 +26,6 @@ riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 -c -o $BASENAME.o $BASENAME.c
 riscv64-unknown-elf-ld -b elf32-littleriscv $BASENAME.o -T $LD_PATH -o $BASENAME
 riscv64-unknown-elf-objcopy -O binary $BASENAME $BASENAME.bin
 od -An -tx1 -w1 -v $BASENAME.bin > $BASENAME.hex
-riscv64-unknown-elf-objdump -b elf32-littleriscv --section=.text --section=.text.startup --section=.text.init --section=.data -D $BASENAME > $BASENAME.dump
+riscv64-unknown-elf-objdump -b elf32-littleriscv -M no-aliases --section=.text --section=.text.startup --section=.text.init --section=.data -D $BASENAME > $BASENAME.dump
 
 sbt "testOnly ctest.HexTest"
