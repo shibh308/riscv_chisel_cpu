@@ -1,15 +1,15 @@
 #include <stdio.h>
 
+const int START_ADDR = 0x00001000;
+
 int main(){
-    const unsigned int x = 1;
-    const unsigned int y = 2;
-    unsigned int z = x + y;
-    if(z == 1){
-        z += 1;
-    }
-    else{
-        z += 2;
-    }
+    *(char*)START_ADDR = 0x01;
+    *(char*)START_ADDR = 0x00;
+    *(char*)START_ADDR = 0x01;
+    *(char*)START_ADDR = 0x00;
+    *(char*)START_ADDR = 0x01;
+    *(char*)START_ADDR = 0x00;
+    *(char*)START_ADDR = 0x01;
     asm volatile("unimp");
     return 0;
 }

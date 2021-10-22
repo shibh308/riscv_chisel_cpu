@@ -341,3 +341,5 @@ hs_err_pid*
 
 /src/main/scala/auto_generate
 /results
+/src/c/*
+!/src/c/*.c
