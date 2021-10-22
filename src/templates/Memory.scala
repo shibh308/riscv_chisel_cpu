@@ -19,6 +19,7 @@ class DmemPortIo extends Bundle {
     val wen = Input(Bool()) // 書き込み可否
     val rdata = Output(UInt(WORD_LEN.W)) // 読み込みデータ
     val wdata = Input(UInt(WORD_LEN.W)) // 書き込みデータ
+    val len = Input(UInt(MEMLEN_LEN.W)) // 読み書きのビット数
 }
 
 
@@ -42,12 +43,19 @@ class Memory extends Module {
         mem(io.imem.addr + 1.U(WORD_LEN.W)),
         mem(io.imem.addr + 0.U(WORD_LEN.W))
     )
-    io.dmem.rdata := Cat(
-        mem(io.dmem.addr + 3.U(WORD_LEN.W)),
-        mem(io.dmem.addr + 2.U(WORD_LEN.W)),
-        mem(io.dmem.addr + 1.U(WORD_LEN.W)),
-        mem(io.dmem.addr + 0.U(WORD_LEN.W))
-    )
+    // MEMLEN_Xの時はそもそも読まれない
+    io.dmem.rdata := MuxCase(Cat(mem(io.dmem.addr)), Seq(
+        (io.dmem.len === MEMLEN_16) -> Cat(
+            mem(io.dmem.addr + 1.U(WORD_LEN.W)),
+            mem(io.dmem.addr + 0.U(WORD_LEN.W))
+        ),
+        (io.dmem.len === MEMLEN_32) -> Cat(
+            mem(io.dmem.addr + 3.U(WORD_LEN.W)),
+            mem(io.dmem.addr + 2.U(WORD_LEN.W)),
+            mem(io.dmem.addr + 1.U(WORD_LEN.W)),
+            mem(io.dmem.addr + 0.U(WORD_LEN.W))
+        )
+    ))
 
     printf("----------------\n")
     printf(p"dmem.wen : 0x${io.dmem.wen}\n")
@@ -57,9 +65,15 @@ class Memory extends Module {
 
     // メモリへの書き込み
     when(io.dmem.wen) {
-        mem(io.dmem.addr + 0.U) := io.dmem.wdata(7, 0)
-        mem(io.dmem.addr + 1.U) := io.dmem.wdata(15, 8)
-        mem(io.dmem.addr + 2.U) := io.dmem.wdata(23, 16)
-        mem(io.dmem.addr + 3.U) := io.dmem.wdata(31, 24)
+        when(io.dmem.len =/= MEMLEN_X) {
+            mem(io.dmem.addr + 0.U) := io.dmem.wdata(7, 0)
+        }
+        when(io.dmem.len === MEMLEN_16 || io.dmem.len === MEMLEN_32) {
+            mem(io.dmem.addr + 1.U) := io.dmem.wdata(15, 8)
+        }
+        when(io.dmem.len === MEMLEN_32) {
+            mem(io.dmem.addr + 2.U) := io.dmem.wdata(23, 16)
+            mem(io.dmem.addr + 3.U) := io.dmem.wdata(31, 24)
+        }
     }
 }
