@@ -27,22 +27,23 @@ class Memory extends Module {
     val io = IO(new Bundle{
         val imem = new ImemPortIo()
         val dmem = new DmemPortIo()
-        val serial = Output(Bool())
+        val mmu = Input(Bool())
     })
 
     val mem = Mem(MEM_SIZE, UInt(8.W))
-
-    io.serial := mem(IO_START_ADDR)
-
+    // ページング先を保存している
+    val paging_regfile = Mem(NUM_PAGES, UInt(WORD_LEN.W))
+    // TODO: ページング
+    val imem_addr = io.imem.addr // Mux(io.mmu, , io.imem.addr)
 
     loadMemoryFromFile(mem, "{load_path}")
 
     // 命令読み込み
     io.imem.inst := Cat(
-        mem(io.imem.addr + 3.U(WORD_LEN.W)),
-        mem(io.imem.addr + 2.U(WORD_LEN.W)),
-        mem(io.imem.addr + 1.U(WORD_LEN.W)),
-        mem(io.imem.addr + 0.U(WORD_LEN.W))
+        mem(imem_addr + 3.U(WORD_LEN.W)),
+        mem(imem_addr + 2.U(WORD_LEN.W)),
+        mem(imem_addr + 1.U(WORD_LEN.W)),
+        mem(imem_addr + 0.U(WORD_LEN.W))
     )
     // MEMLEN_Xの時はそもそも読まれない
     io.dmem.rdata := MuxCase(Cat(mem(io.dmem.addr)), Seq(
@@ -63,7 +64,6 @@ class Memory extends Module {
     printf(p"dmem.wen : 0x${io.dmem.wen}\n")
     printf(p"dmem.addr : 0x${Hexadecimal(io.dmem.addr)}\n")
     printf(p"dmem.wdata : 0x${Hexadecimal(io.dmem.wdata)}\n")
-    printf(p"io_serial : 0x${Hexadecimal(mem(IO_START_ADDR))}\n")
     printf("----------------\n")
     */
 
@@ -80,4 +80,14 @@ class Memory extends Module {
             mem(io.dmem.addr + 3.U) := io.dmem.wdata(31, 24)
         }
     }
+
+    // sw
+    when(io.dmem.wen) {
+        printf(p"inst: sw\taddr: ${Hexadecimal(io.dmem.addr)}\tval: ${io.dmem.wdata}\n");
+    }
+    // lw
+    when(!io.dmem.wen && io.dmem.len =/= MEMLEN_X) {
+        printf(p"inst: lw\taddr: ${Hexadecimal(io.dmem.addr)}\tval: ${io.dmem.rdata}\n");
+    }
+
 }

@@ -21,7 +21,8 @@ class Top extends Module {
     core.io.imem <> memory.io.imem
     core.io.dmem <> memory.io.dmem
 
-    memory.io.serial <> serial.io.input
+    core.io.serial <> serial.io.input
+    memory.io.mmu <> core.io.mmu
     serial.io.cnt := core.io.cnt
 
     io.gp := core.io.gp

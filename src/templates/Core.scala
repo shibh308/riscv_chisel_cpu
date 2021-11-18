@@ -11,9 +11,10 @@ class Core extends Module {
     val io = IO(new Bundle {
         val imem = Flipped(new ImemPortIo())
         val dmem = Flipped(new DmemPortIo())
-        // 終了判定
-        val exit = Output(Bool())
+        val exit = Output(Bool()) // 終了判定
+        val mmu = Output(Bool())
         val gp = Output(UInt(WORD_LEN.W)) // x3のレジスタ
+        val serial = Output(UInt(8.W))
         val cnt = Output(UInt(COUNTER_LEN.W))
     })
 
@@ -23,6 +24,10 @@ class Core extends Module {
     // プログラムカウンタ
     val pc_reg = RegInit(START_ADDR);
 
+    // 仮想アドレスを使うか
+    val mmu_reg = RegInit(0.B)
+    io.mmu := mmu_reg
+
     // CSR用のレジスタ
     val csr_regfile = Mem(NUM_CSR_REG, UInt(WORD_LEN.W))
 
@@ -31,6 +36,8 @@ class Core extends Module {
 
     // フェッチされた命令
     val inst = Wire(UInt(WORD_LEN.W))
+
+    printf(p"pc: 0x${Hexadecimal(pc_reg)}\tinst: 0x${Hexadecimal(inst)}\n")
 
     // ジャンプ関連のフラグ
     val br_flg = Wire(Bool()) // 分岐判定がTrueになったかどうか
@@ -235,6 +242,8 @@ class Core extends Module {
     when(csr_cmd =/= CSR_X) {
         csr_regfile(csr_addr) := csr_wdata
     }
+
+    io.serial := Mux((csr_cmd =/= CSR_X && csr_addr === 0x10.U(CSR_ADDR_LEN.W)), csr_wdata(7, 0), 0.U(8.W))
 
     /*
     printf(p"pc_reg     : 0x${Hexadecimal(pc_reg)}\n")

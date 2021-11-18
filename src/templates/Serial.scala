@@ -18,11 +18,17 @@ class ShiftReg extends Module {
 
 class Serial extends Module {
     val io = IO(new Bundle {
-        val input = Input(Bool())
+        val input = Input(UInt(8.W))
         val cnt = Input(UInt(COUNTER_LEN.W))
     })
     val reg = Module(new ShiftReg())
-    reg.io.input := io.input
+
+    when(io.input =/= 0.U(8.W)){
+        printf(p"serial_output: ${io.input}\n")
+    }
+
+    // -------------------- 以下TODO ----------------
+    reg.io.input := io.input(0) // TODO: ここの処理は8bitずつまとめて入れるべき
 
     // クロックは後でうまくやる
     reg.io.clk := (io.cnt(3,0) === BitPat("b0000"))
@@ -33,5 +39,4 @@ class Serial extends Module {
         val pat = uart_res(8, 1)
     }
 
-    // printf(p"serial_input: ${io.input}\n")
 }

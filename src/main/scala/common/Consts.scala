@@ -7,10 +7,15 @@ object Consts {
   val COUNTER_LEN   = 32 // clkのビット数
   val NUM_REG       = 32 // レジスタ本数
   val NUM_CSR_REG   = 4096
-  val MEM_SIZE      = 16384 // メモリサイズ (16KB)
 
-  val START_ADDR    = 0.U(WORD_LEN.W)
-  val IO_START_ADDR = 0x00001000.U(WORD_LEN.W) // IOの開始地点 (UARTのポート)
+  // 1ページが4096byte
+  // 0x000**???は同じページに割り当てられる (ページ候補が2^8=256個あって, それぞれ2^12byte=4096byteある)
+  // 0x001*****はIOその他に割り当てる (マッピングしない)
+  val MEM_SIZE      = 0x00200000 // メモリサイズ (0x00200000, 2MB)
+  val NUM_PAGES     = 256
+
+  val START_ADDR    = 0.U(WORD_LEN.W) // プログラムの開始地点 (MMUが無効な時に呼び出される)
+  val IO_START_ADDR = 0x00100000.U(WORD_LEN.W) // IOの開始地点 (UART)
 
   val BUBBLE        = 0x00000013.U(WORD_LEN.W)  // [ADDI x0,x0,0] = BUBBLE
   val UNIMP         = "x_c0001073".U(WORD_LEN.W) // [CSRRW x0, cycle, x0]
