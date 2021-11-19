@@ -46,18 +46,28 @@ class Memory extends Module {
         mem(imem_addr + 0.U(WORD_LEN.W))
     )
     // MEMLEN_Xの時はそもそも読まれない
-    io.dmem.rdata := MuxCase(Cat(mem(io.dmem.addr)), Seq(
-        (io.dmem.len === MEMLEN_16) -> Cat(
+    io.dmem.rdata := MuxCase(Cat(Fill(48, 0.U), mem(io.dmem.addr)).asSInt(), Seq(
+        (io.dmem.len === MEMLEN_16U) -> Cat(
+            Fill(32, 0.U),
             mem(io.dmem.addr + 1.U(WORD_LEN.W)),
             mem(io.dmem.addr + 0.U(WORD_LEN.W))
-        ),
+        ).asSInt(),
         (io.dmem.len === MEMLEN_32) -> Cat(
             mem(io.dmem.addr + 3.U(WORD_LEN.W)),
             mem(io.dmem.addr + 2.U(WORD_LEN.W)),
             mem(io.dmem.addr + 1.U(WORD_LEN.W)),
             mem(io.dmem.addr + 0.U(WORD_LEN.W))
-        )
-    ))
+        ).asSInt(),
+        (io.dmem.len === MEMLEN_8) -> Cat(
+            Fill(48, mem(io.dmem.addr)(7)),
+            mem(io.dmem.addr + 0.U(WORD_LEN.W))
+        ).asSInt(),
+        (io.dmem.len === MEMLEN_16) -> Cat(
+            Fill(32, mem(io.dmem.addr + 1.U(WORD_LEN.W))(7)),
+            mem(io.dmem.addr + 1.U(WORD_LEN.W)),
+            mem(io.dmem.addr + 0.U(WORD_LEN.W))
+        ).asSInt(),
+    )).asUInt()
 
     /*
     printf("----------------\n")
@@ -81,6 +91,7 @@ class Memory extends Module {
         }
     }
 
+    /*
     // sw
     when(io.dmem.wen) {
         printf(p"inst: sw\taddr: ${Hexadecimal(io.dmem.addr)}\tval: ${io.dmem.wdata}\n");
@@ -89,5 +100,6 @@ class Memory extends Module {
     when(!io.dmem.wen && io.dmem.len =/= MEMLEN_X) {
         printf(p"inst: lw\taddr: ${Hexadecimal(io.dmem.addr)}\tval: ${io.dmem.rdata}\n");
     }
+    */
 
 }

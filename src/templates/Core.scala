@@ -37,7 +37,7 @@ class Core extends Module {
     // フェッチされた命令
     val inst = Wire(UInt(WORD_LEN.W))
 
-    printf(p"pc: 0x${Hexadecimal(pc_reg)}\tinst: 0x${Hexadecimal(inst)}\n")
+    // printf(p"pc: 0x${Hexadecimal(pc_reg)}\tinst: 0x${Hexadecimal(inst)}\n")
 
     // ジャンプ関連のフラグ
     val br_flg = Wire(Bool()) // 分岐判定がTrueになったかどうか
@@ -115,6 +115,9 @@ class Core extends Module {
         LH    -> List(ALU_ADD  , OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_MEM, CSR_X, MEMLEN_16),
         LW    -> List(ALU_ADD  , OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_MEM, CSR_X, MEMLEN_32),
 
+        LBU   -> List(ALU_ADD  , OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_MEM, CSR_X, MEMLEN_8U),
+        LHU   -> List(ALU_ADD  , OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_MEM, CSR_X, MEMLEN_16U),
+
         SB    -> List(ALU_ADD  , OP1_RS1, OP2_IMS, MEN_S, REN_X, WB_X  , CSR_X, MEMLEN_8),
         SH    -> List(ALU_ADD  , OP1_RS1, OP2_IMS, MEN_S, REN_X, WB_X  , CSR_X, MEMLEN_16),
         SW    -> List(ALU_ADD  , OP1_RS1, OP2_IMS, MEN_S, REN_X, WB_X  , CSR_X, MEMLEN_32),
@@ -165,6 +168,11 @@ class Core extends Module {
         ECALL -> List(ALU_X    , OP1_X  , OP2_X  , MEN_X, REN_X, WB_X  , CSR_E, MEMLEN_X), // 例外を発生させる
     ))
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wel :: wb_sel :: csr_cmd :: mem_len :: Nil = csignals // unpackして受け取ってる
+
+    when(inst =/= UNIMP && exe_fun === ALU_X && csr_cmd === CSR_X) {
+        printf(p"undefined inst\n");
+        printf(p"pc: 0x${Hexadecimal(pc_reg)}\tinst: 0x${Hexadecimal(inst)}\n")
+    }
 
     // 書き換えるCSRのindex
     val csr_addr = Mux(csr_cmd === CSR_E, 0x342.U(CSR_ADDR_LEN.W), inst(31, 20)) // ECALLの時は0x342(mcauseレジスタ)に特定の値を書き込む

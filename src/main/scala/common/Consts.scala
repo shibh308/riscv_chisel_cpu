@@ -101,9 +101,11 @@ object Consts {
   val CSR_E   = 4.U(CSR_LEN.W)
   val CSR_V   = 5.U(CSR_LEN.W)
 
-  val MEMLEN_LEN = 2
-  val MEMLEN_X   =  0.U(MEMLEN_LEN.W) // load/store時の読み書きbit数
-  val MEMLEN_8   =  1.U(MEMLEN_LEN.W)
-  val MEMLEN_16  =  2.U(MEMLEN_LEN.W)
-  val MEMLEN_32  =  3.U(MEMLEN_LEN.W)
+  val MEMLEN_LEN = 3
+  val MEMLEN_X   = 0.U(MEMLEN_LEN.W) // load/store時の読み書きbit数
+  val MEMLEN_8   = 1.U(MEMLEN_LEN.W)
+  val MEMLEN_16  = 2.U(MEMLEN_LEN.W)
+  val MEMLEN_32  = 3.U(MEMLEN_LEN.W)
+  val MEMLEN_8U  = 4.U(MEMLEN_LEN.W)
+  val MEMLEN_16U = 5.U(MEMLEN_LEN.W)
 }
