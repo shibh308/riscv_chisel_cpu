@@ -37,6 +37,12 @@ class Core extends Module {
     // フェッチされた命令
     val inst = Wire(UInt(WORD_LEN.W))
 
+    /*
+    when(csr_regfile(0)(0)){
+        printf(p"inst:${Hexadecimal(inst)}\n");
+    }
+    */
+
     // printf(p"pc: 0x${Hexadecimal(pc_reg)}\tinst: 0x${Hexadecimal(inst)}\n")
 
     // ジャンプ関連のフラグ

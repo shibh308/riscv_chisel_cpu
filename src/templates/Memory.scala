@@ -37,7 +37,12 @@ class Memory extends Module {
     val imem_addr = io.imem.addr;
     val dmem_addr = Mux(io.mmu, 0x200000.U(WORD_LEN.W) | (io.page_id << 16) | io.dmem.addr, io.dmem.addr)
 
-    // TODO: なんか204324(0x3460c)とかから取ってきてる場合があって, ページングが壊れる なんで？
+    when(io.mmu && io.dmem.len =/= MEMLEN_X){
+        printf(p"${Hexadecimal(io.dmem.addr)}, ${Hexadecimal(dmem_addr)}\n")
+        when(io.dmem.addr >= 0x00010000.U(WORD_LEN.W)){
+            printf("YABAI!!!!!!!!!!!!!!!!!!\n")
+        }
+    }
 
     loadMemoryFromFile(mem, "{load_path}")
 
