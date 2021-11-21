@@ -9,9 +9,7 @@ object Consts {
   val NUM_CSR_REG   = 4096
 
   // 1ページが4096byte
-  // 0x000**???は同じページに割り当てられる (ページ候補が2^8=256個あって, それぞれ2^12byte=4096byteある)
-  // 0x001*****はIOその他に割り当てる (マッピングしない)
-  val MEM_SIZE      = 0x00200000 // メモリサイズ (0x00200000, 2MB)
+  val MEM_SIZE      = 0x00400000 // メモリサイズ (4MB)
   val NUM_PAGES     = 256
 
   val START_ADDR    = 0.U(WORD_LEN.W) // プログラムの開始地点 (MMUが無効な時に呼び出される)
@@ -47,9 +45,6 @@ object Consts {
   val BR_BGEU     = 16.U(EXE_FUN_LEN.W)
   val ALU_JALR    = 17.U(EXE_FUN_LEN.W)
   val ALU_COPY1   = 18.U(EXE_FUN_LEN.W)
-  val ALU_VADDVV  = 19.U(EXE_FUN_LEN.W)
-  val VSET        = 20.U(EXE_FUN_LEN.W)
-  val ALU_PCNT    = 21.U(EXE_FUN_LEN.W)
 
   val OP1_LEN = 2
   val OP1_RS1 = 0.U(OP1_LEN.W)

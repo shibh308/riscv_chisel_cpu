@@ -12,9 +12,10 @@ class Core extends Module {
         val imem = Flipped(new ImemPortIo())
         val dmem = Flipped(new DmemPortIo())
         val exit = Output(Bool()) // 終了判定
-        val mmu = Output(Bool())
         val gp = Output(UInt(WORD_LEN.W)) // x3のレジスタ
         val serial = Output(UInt(8.W))
+        val mmu = Output(Bool())
+        val page_id = Output(UInt(WORD_LEN.W))
         val cnt = Output(UInt(COUNTER_LEN.W))
     })
 
@@ -24,12 +25,11 @@ class Core extends Module {
     // プログラムカウンタ
     val pc_reg = RegInit(START_ADDR);
 
-    // 仮想アドレスを使うか
-    val mmu_reg = RegInit(0.B)
-    io.mmu := mmu_reg
-
     // CSR用のレジスタ
     val csr_regfile = Mem(NUM_CSR_REG, UInt(WORD_LEN.W))
+
+    io.mmu := csr_regfile(0)(0)
+    io.page_id := csr_regfile(1)
 
     // ALUの出力
     val alu_out = Wire(UInt(WORD_LEN.W))
@@ -199,8 +199,8 @@ class Core extends Module {
         (exe_fun === ALU_AND) -> (op1_data & op2_data),
         (exe_fun === ALU_OR) -> (op1_data | op2_data),
         (exe_fun === ALU_XOR) -> (op1_data ^ op2_data),
-        (exe_fun === ALU_SRL) -> (op1_data << op2_data(4, 0))(31, 0), // シフトすると32bitでなくなるので下位32bitを取り出す
-        (exe_fun === ALU_SLL) -> (op1_data >> op2_data(4, 0)).asUInt(), // 右シフトがBits型を返すので明示的に変換
+        (exe_fun === ALU_SLL) -> (op1_data << op2_data(4, 0))(31, 0), // シフトすると32bitでなくなるので下位32bitを取り出す
+        (exe_fun === ALU_SRL) -> (op1_data >> op2_data(4, 0)).asUInt(), // 右シフトがBits型を返すので明示的に変換
         (exe_fun === ALU_SRA) -> (op1_data.asSInt() >> op2_data(4, 0)).asUInt(), // SIntに対するシフトは算術シフトになるらしい
         (exe_fun === ALU_SLT) -> (op1_data.asSInt() < op2_data.asSInt()).asUInt(),
         (exe_fun === ALU_SLTU) -> (op1_data < op2_data),
@@ -251,7 +251,7 @@ class Core extends Module {
         csr_regfile(csr_addr) := csr_wdata
     }
 
-    io.serial := Mux((csr_cmd =/= CSR_X && csr_addr === 0x10.U(CSR_ADDR_LEN.W)), csr_wdata(7, 0), 0.U(8.W))
+    io.serial := Mux((csr_cmd =/= CSR_X && csr_addr === 0x10.U(CSR_ADDR_LEN.W)), csr_wdata(7, 0), 255.U(8.W))
 
     /*
     printf(p"pc_reg     : 0x${Hexadecimal(pc_reg)}\n")
@@ -274,5 +274,6 @@ class Core extends Module {
     */
 
     // 終了判定
+    // TODO: UNIMPを引いた後もUARTの出力だけはさせたい
     io.exit := {exit} // riscv-testsの終了アドレス
 }

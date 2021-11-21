@@ -23,6 +23,7 @@ class Top extends Module {
 
     core.io.serial <> serial.io.input
     memory.io.mmu <> core.io.mmu
+    memory.io.page_id <> core.io.page_id
     serial.io.cnt := core.io.cnt
 
     io.gp := core.io.gp
