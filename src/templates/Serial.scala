@@ -23,9 +23,11 @@ class Serial extends Module {
     })
     val reg = Module(new ShiftReg())
 
+    /*
     when(io.input =/= 255.U(8.W)){
         printf(p"serial_output: ${io.input}\n")
     }
+    */
 
     // -------------------- 以下TODO ----------------
     reg.io.input := io.input(0) // TODO: ここの処理は8bitずつまとめて入れるべき

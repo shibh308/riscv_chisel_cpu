@@ -37,12 +37,6 @@ class Core extends Module {
     // フェッチされた命令
     val inst = Wire(UInt(WORD_LEN.W))
 
-    /*
-    when(csr_regfile(0)(0)){
-        printf(p"inst:${Hexadecimal(inst)}\n");
-    }
-    */
-
     // printf(p"pc: 0x${Hexadecimal(pc_reg)}\tinst: 0x${Hexadecimal(inst)}\n")
 
     // ジャンプ関連のフラグ
@@ -56,12 +50,32 @@ class Core extends Module {
     // pc_nextに入れたり, ジャンプ命令の時にライトバックしたりする
     val pc_plus4 = pc_reg + 4.U(WORD_LEN.W)
 
+
+    // 割り込み処理周り
+    val clk_enable = csr_regfile(0x02)(0);
+    val now_clk = csr_regfile(0x03);
+    val nex_clk = Mux(clk_enable, now_clk + 1.U(WORD_LEN.W), 0.U(WORD_LEN.W))
+    val interrupt_flg = (clk_enable && (nex_clk(5, 0) === 0.U(6.W)))
+    csr_regfile(0x03) := nex_clk
+    when(interrupt_flg){
+        csr_regfile(0x40) := pc_reg // + 4.U(WORD_LEN.W) // TODO: ここ4.Uで合ってる？
+        // csr_regfile(0x21) := regfile(1) // raの保存
+        csr_regfile(0x22) := regfile(2) // spの保存
+        csr_regfile(0x02) := 0.B
+        printf(p"interrupt: ${pc_reg} => ${csr_regfile(0x82.U(WORD_LEN.W))}\n");
+    }
+    /*
+    when(csr_regfile(0)(0)){
+        printf(p"pc: $pc_reg\n");
+    }
+    */
+
     // 次の命令に行かずにジャンプをする場合がある
     // br_flgの代入がEXステージなので直感に反するんだけど、これで問題ないらしい
     val pc_next = MuxCase(pc_plus4, Seq(
         br_flg -> br_target, // ALUでは分岐判定が走ってて, br_targetはALUとは別に計算をしている
         jmp_flg -> alu_out, // ジャンプ先アドレスはALUで計算するため
-        (inst === ECALL) -> csr_regfile(0x305) // 0x305(mtvec)がtrap_vectorアドレスで, OSだと例外時のシステムコールが書いてある
+        interrupt_flg -> csr_regfile(0x82.U(WORD_LEN.W)), // interruptに飛ぶ
     ))
     pc_reg := pc_next
     
@@ -74,7 +88,7 @@ class Core extends Module {
 
     // --------------------- IF --------------------
     io.imem.addr := pc_reg
-    inst := io.imem.inst
+    inst := Mux(interrupt_flg, BUBBLE, io.imem.inst);
 
 
     // --------------------- ID --------------------
@@ -257,6 +271,9 @@ class Core extends Module {
         csr_regfile(csr_addr) := csr_wdata
     }
 
+    when(csr_cmd =/= CSR_X && csr_addr === 0x10.U(CSR_ADDR_LEN.W)){
+        printf(p"write_char: ${csr_wdata}\n");
+    }
     io.serial := Mux((csr_cmd =/= CSR_X && csr_addr === 0x10.U(CSR_ADDR_LEN.W)), csr_wdata(7, 0), 255.U(8.W))
 
     /*
